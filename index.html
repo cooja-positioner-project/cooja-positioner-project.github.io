@@ -690,6 +690,15 @@
           const before = JSON.stringify(preDragSnapshot.positions); 
           const after = JSON.stringify(positions); 
           if (before !== after) commitHistory(); 
+          // Refresh Latitude/Longitude Input and output to reflect new positions
+          const intervalMs = parseFloat(intervalInput.value) || 1000;
+          const lines = positions.map((p, i) => {
+            const nodeId = p.nodeId || (i + 1);
+            const time = scenario === 'fixed' ? '0.000000000' : (i * intervalMs / 1000).toFixed(9);
+            return `${nodeId} ${time} ${p.lat.toFixed(9)} ${p.lng.toFixed(9)}`;
+          });
+          latlngInput.value = lines.join('\n');
+          updateOutput();
         }
         else if (isSelectingRect) {
           const dx = Math.abs(selEndS.x - selStartS.x);
@@ -1111,36 +1120,24 @@
     }
 
     function updateOutput(){
+      // positions.dat box: show faint column placeholder until user clicks "Convert to Cooja Positions"
+      if (exportSelect.value === 'xy') {
+        output.textContent = '<node_id> <time> <x> <y> <z>\n\nExample:\n1 0.000000000 0.000000000 0.000000000 0.000000000\n1 1.000000000 10.000000000 20.000000000 0.000000000';
+        output.style.color = '#999';
+        return;
+      }
       const intervalMs=parseFloat(intervalInput.value)||1000;
       if (positions.length === 0) {
-        // Show placeholder when no positions
-        if (exportSelect.value === 'latlng') {
-          output.textContent = '<node_id> <time> <latitude> <longitude> <z>\n\nExample:\n1 0.000000000 41.2867 36.33 0.000000000\n1 1.000000000 41.2870 36.331 0.000000000';
-        } else {
-          output.textContent = '<node_id> <time> <x> <y> <z>\n\nExample:\n1 0.000000000 0.000000000 0.000000000 0.000000000\n1 1.000000000 10.000000000 20.000000000 0.000000000';
-        }
+        output.textContent = '<node_id> <time> <latitude> <longitude> <z>\n\nExample:\n1 0.000000000 41.2867 36.33 0.000000000\n1 1.000000000 41.2870 36.331 0.000000000';
         output.style.color = '#999';
         return; 
       }
       output.style.color = '';
       const lines = positions.map((p,i)=>{
-        const nodeId = p.nodeId || (i + 1); // Use nodeId from position, or fallback to index+1
-        // Fixed mode: time is always 0, Mobile mode: time increments
+        const nodeId = p.nodeId || (i + 1);
         const timeStr = scenario === 'fixed' ? '0.000000000' : (i*intervalMs/1000).toFixed(9);
-        if (exportSelect.value==='latlng'){
-          const latStr = p.lat.toFixed(9); const lngStr = p.lng.toFixed(9);
-          return `${nodeId} ${timeStr} ${latStr} ${lngStr} 0.000000000`;
-        } else {
-          // Cooja: in both modes use earth-list nodeId - 1 (Fixed: each row its own id-1, Mobile: same id-1 on every row)
-          const mapNodeId = p.nodeId || (i + 1);
-          const coojaNodeId = Math.max(0, mapNodeId - 1);
-          const center = map.getCenter(); const centerPt = map.project(center, map.getZoom()); 
-          const pt = map.project([p.lat,p.lng], map.getZoom()); 
-          const metersPerPixel = calcMetersPerPixel(center.lat, map.getZoom()); 
-          const dx = (pt.x - centerPt.x) * metersPerPixel; 
-          const dy = -(pt.y - centerPt.y) * metersPerPixel;
-          return `${coojaNodeId} ${timeStr} ${dx.toFixed(9)} ${dy.toFixed(9)} 0.000000000`;
-        }
+        const latStr = p.lat.toFixed(9); const lngStr = p.lng.toFixed(9);
+        return `${nodeId} ${timeStr} ${latStr} ${lngStr} 0.000000000`;
       });
       output.textContent = lines.join('\n');
     }
