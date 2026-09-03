@@ -1,159 +1,64 @@
-# Cooja Positioner
+# Cooja Positioner — Live Application
 
-Cooja Positioner is a client-side, browser-based editor for authoring geographically grounded WSN and IoT scenarios. It preserves WGS84 positions, node identifiers, waypoint timing, altitude, and the local-origin policy, then exports simulator-specific position or mobility artifacts for Cooja, ns-2, ns-3, and INET/OMNeT++.
+Cooja Positioner is a client-side, browser-based editor for authoring geographically grounded WSN and IoT scenarios and exporting simulator-specific artifacts.
 
-**Online application:** https://cooja-positioner-project.github.io/
+- **Live application:** https://cooja-positioner-project.github.io/
+- **Source, tests, and reproducibility artifacts:** https://github.com/cooja-positioner-project/cooja-positioner
 
-**Source code and research artifacts:** https://github.com/cooja-positioner-project/cooja-positioner
+No application server is required. Leaflet is bundled locally; OpenStreetMap tiles and Nominatim place search still require network access.
 
-No application server is required. Leaflet, the map rendering library, is bundled locally and does not require network access. Map tiles and place search currently use external OpenStreetMap and Nominatim services, so those two functions require network access.
+## Current features
 
-## What it is for
+### Geographic scenario authoring
 
-The tool connects field-oriented deployment planning with simulator setup. A user can mark exact map positions, retain stable node IDs that may later be associated with firmware or protocol roles, generate regularly spaced nodes inside a polygon, or create a mobile scan route over a selected area. The tool does not assign network roles, predict coverage, or replace the target simulator's radio, protocol, energy, or firmware models.
+- Manual point placement with stable node identifiers.
+- Static multi-node deployments and timestamped mobile routes.
+- Approximately hexagonal polygon deployments and horizontal/vertical scan paths.
+- First-waypoint or explicit WGS84 origin selection.
+- WGS84 → ECEF → local ENU conversion independent of map pan and zoom.
+- Session persistence, duplicate-ID guards, undo/redo, multi-selection, keyboard shortcuts, and Cooja position import.
 
-## Features
+### Mobility and position exports
 
-### Scenario authoring
-
-- **Mobile scenario:** one node ID with ordered waypoints and increasing timestamps.
-- **Static scenario:** multiple node IDs with zero-time placements.
-- **Point Mode:** manually add, drag, rename, select, and delete geographic points.
-- **Polygon Mode — static:** generate an approximately hexagonal regular deployment inside a user-drawn polygon using the selected metre spacing.
-- **Polygon Mode — mobile:** generate a horizontal or vertical lawn-mower/scan path inside a polygon.
-- **Circle guide:** display a placement guide sized from 10–50 m presets or a custom value. It is a geometric aid, not a connectivity guarantee.
-- **Duplicate Node ID guard:** Static-scenario renames and conversion are blocked when a chosen ID collides with another node.
-- **Session persistence:** the current scenario is saved to the browser's local storage and restored automatically on reload.
-- Undo/redo, multi-selection, keyboard shortcuts, text input, and Cooja position import.
-
-### Coordinate model
-
-- Canonical geographic state in **WGS84 / EPSG:4326**.
-- WGS84 geodetic → ECEF → local ENU transformation.
-- **First input row** origin policy: the first valid waypoint becomes local `(0, 0)`.
-- **Custom WGS84 origin** policy: offsets are retained from a fixed user-specified reference, set by typing coordinates or by right-clicking a placed node and choosing **Set as Origin**.
-- Coordinate results are independent of map pan, zoom, and viewport state.
-- Geographic altitude is retained in the canonical scenario; each export adapter enforces its supported dimensionality.
-
-### Simulator exports
-
-| Target | Generated file | Current evidence boundary |
+| Target | Generated artifact | Supported scope |
 |---|---|---|
-| Cooja Mobility | `positions.dat` | Planar mobile trace; zero-based mote-array index; tested plugin is cyclic. Static and nonzero-Z exports are rejected. |
-| ns-2 | `mobility-ns2.tcl` | Static initialization and planar `setdest` mobility statements; tested with real ns-2 2.35 (`MobileNode` CMU model). |
-| ns-3 | `mobility-ns3.tcl` | Consumed through `Ns2MobilityHelper`; static and planar mobile fixtures tested with ns-3.47. |
-| INET/OMNeT++ | `mobility-bonnmotion.movements` | Planar BonnMotion `t x y` triplets; tested with OMNeT++ 6.4.0 and INET 4.7.0. |
+| Cooja Mobility | `positions.dat` | Planar mobile trace with explicit zero-based mote-array indexing and cyclic-plugin warnings. |
+| ns-2 | `mobility-ns2.tcl` | Static initialization and planar `setdest` mobility. |
+| ns-3 | `mobility-ns3.tcl` | Static and planar mobile input for `Ns2MobilityHelper`. |
+| INET/OMNeT++ | `mobility-bonnmotion.movements` | Planar BonnMotion `t x y` triplets. |
 
-The adapter warnings shown by the application are part of the supported behavior. Format-level validation does not imply arbitrary-version simulator compatibility.
+Each adapter validates its own dimensionality, identifier, and timing restrictions before export. A file-format check is not presented as proof of compatibility with arbitrary simulator releases.
 
-## Quick start
+### Provenance-aware propagation initialization
 
-1. Open https://cooja-positioner-project.github.io/ or open `index.html` locally in a modern browser.
-2. Search for the target area and choose **Mobile** or **Static**.
-3. Select **Point Mode** for manual placement or **Polygon Mode** for generated deployment/scan paths.
-4. Choose the **XY Origin** policy.
-5. Add points, draw a polygon, or paste rows in this form:
+The bundled propagation catalog represents five deployment-environment families plus a free-space baseline through six cited profile definitions: urban open-street LoS, urban street-canyon NLoS, 2.4-GHz agriculture, forest/vegetation, 2.4-GHz coastal over-water, and Friis free space. Profiles retain their source, frequency applicability, required context, caveats, parameter origins, and BibTeX provenance.
 
-   ```text
-   node_id time_s latitude_deg longitude_deg [altitude_m]
-   ```
+The shared adapter library assesses Cooja, ns-2, ns-3, and INET mappings as `native`, `parameterized-approximation`, or `unsupported`. Unsupported is an evidence-preserving result: the code does not invent a coefficient when required environmental or calibration inputs are absent. Geometry/mobility and propagation remain separate artifacts so that a geographic scenario can be reused under controlled radio assumptions without implying cross-simulator equivalence.
 
-6. Select the target simulator and press **Convert**.
-7. Review compatibility warnings, then use **Copy** or **Save export**.
+The current live interface provides a dedicated Cooja workflow with 18 cited condition-level choices. A user selects an existing researcher-created `.csc`; the browser replaces its radio medium with an inspectable LogisticLoss configuration and updates the simulation seed while preserving mote types, firmware references, positions, Mobility and ScriptRunner settings, and unrelated plugins. Browser permissions produce a downloaded `*-pathloss.csc` rather than silently overwriting the selected file.
 
-Polygon drawing is completed with **Enter** or a double-click and cancelled with **Esc**.
+Cooja's `transmitting_range` is both a strict candidate-receiver cutoff and the distance at which mean RSSI is anchored to `rx_sensitivity`; it is not a simple antenna-range control. Likewise, source-reported spatial shadowing is not automatically equivalent to Cooja's independent per-reception AWGN term. These settings are literature-informed initialization assumptions, not automatic environment detection, site calibration, or guaranteed packet reception.
 
-## Important identifier convention
+## Verification boundary
 
-Editor node IDs are one-based. The tested Cooja Mobility plugin selects motes by zero-based simulation-array index. Therefore, editor node ID 101 is exported as Cooja mote index 100. This is an array position, not the firmware mote ID field stored in a `.csc` file.
+The source artifact records successful loading of 13 pinned propagation configurations: three Cooja, three ns-2.35, four ns-3.47, and three OMNeT++ 6.4/INET 4.7 cases. This verifies configuration loading and model instantiation in those versions, not field accuracy or numerical equivalence across simulators.
 
-## Keyboard shortcuts
+A deterministic Zolertia Z1 characterization executed 216 Cooja scenarios: 18 condition-level profiles × two RX anchors × six distances from 10 to 60 m. All cases completed. Of 108 paired RX-anchor comparisons, 107 produced identical PRR and conditional RSSI; the sole difference, Forest Guava at 20 m, resulted from the strict LogisticLoss candidate cutoff. The sweep uses one seed and includes source-domain extrapolations, so it is reported as simulator-model characterization rather than inferential or hardware-calibration evidence.
 
-| Action | Shortcut |
-|---|---|
-| Select all | Ctrl+A |
-| Multiple selection | Ctrl+Shift+Click |
-| Delete selected | Del / Backspace |
-| Undo | Ctrl+Z |
-| Redo | Ctrl+Y or Ctrl+Shift+Z |
-| Show shortcut overlay | Ctrl+? |
-| Finish polygon | Enter |
-| Cancel polygon | Esc |
+Detailed equations, mappings, source citations, automated tests, pinned-toolchain reports, and evidence limitations are maintained in the [anonymous source repository](https://github.com/cooja-positioner-project/cooja-positioner).
 
-## Case-study dataset
+## Quick use
 
-[`artifacts/case-study-dataset/`](https://github.com/cooja-positioner-project/cooja-positioner/tree/main/artifacts/case-study-dataset) contains a deployment-to-Cooja case-study artifact:
+1. Open the [live application](https://cooja-positioner-project.github.io/).
+2. Choose a static or mobile scenario and a point or polygon workflow.
+3. Select the local-origin policy and author or paste the geographic positions.
+4. Select Cooja, ns-2, ns-3, or INET/OMNeT++ and generate the mobility/position artifact.
+5. Optionally enable the Cooja propagation panel, select a cited condition, review its assumptions, choose an existing `.csc`, and download the preserved LogisticLoss version.
 
-- `geo_coordinates.csv` — five geographic mobile-anchor trajectories with nominal steps of 10, 20, 30, 40, and 50 m.
-- `cooja_positions.csv` — corresponding local Cooja positions.
-- `packet_receptions.csv` — receiver/anchor positions and RSSI for 25 radio-range/trajectory-step configurations.
-- `scenario_summary.csv` — packet-observation counts derived from the 25 cleaned traces.
+Keep the visible OpenStreetMap attribution when capturing or redistributing map-based screenshots or videos.
 
-The deployment contained 100 stationary unknown nodes and one mobile anchor. The experiment observer excluded mote ID 100, so packet-derived summaries use the 99 retained stationary-node traces and are not extrapolated to 100. The packet traces depend on the configured Cooja radio and scenario model; they are reproducibility material, not universal wireless measurements or a localization benchmark.
+## Anonymous citation
 
-## Validation and tests
+> Cooja-Positioner Project, “Cooja-Positioner: A provenance-aware web-based scenario synthesizer for geo-grounded WSN simulations in Cooja, ns-2, ns-3, and OMNeT++,” software and reproducibility artifact, 2026. Source: https://github.com/cooja-positioner-project/cooja-positioner. Live application: https://cooja-positioner-project.github.io/
 
-The source repository separates the coordinate core from simulator adapters:
-
-- `coordinate-core.js` — WGS84/ECEF/ENU transformations.
-- `simulator-adapters.js` — target-specific serialization, parsing, guards, and warnings.
-- `tests/` — coordinate, adapter, fixture, and integration runners.
-- `integrations/` — pinned fixtures, verifier sources, toolchain metadata, and machine-readable reports.
-
-After cloning the source repository, run dependency-free checks with Node.js:
-
-```bash
-node tests/coordinate-core.test.js
-node tests/simulator-adapters.test.js
-node tests/cooja-integration-fixtures.test.js
-node tests/ns2-integration-fixtures.test.js
-node tests/ns3-integration-fixtures.test.js
-node tests/inet-integration-fixtures.test.js
-node tests/l-shaped-geometry-validation.test.js
-```
-
-The real simulator runners require separately installed, pinned toolchains. See [`tests/SIMULATOR_INTEGRATION.md`](https://github.com/cooja-positioner-project/cooja-positioner/blob/main/tests/SIMULATOR_INTEGRATION.md) and the target-specific README files under [`integrations/`](https://github.com/cooja-positioner-project/cooja-positioner/tree/main/integrations/).
-
-## Source repository layout
-
-```text
-index.html                         Browser application
-coordinate-core.js                 Coordinate transformation core
-simulator-adapters.js              Simulator adapter registry
-keyboard_shortcuts.html            Standalone shortcut reference
-vendor/leaflet/                    Locally bundled Leaflet (no CDN dependency)
-tests/                             Automated checks and runners
-integrations/                      Fixtures, verifier code, and reports
-artifacts/case-study-dataset/      Geographic, Cooja, packet, and summary CSVs
-docs/                              Evidence and documentation notes
-media/                             Images used by validation/documentation
-```
-
-## Video and screenshots
-
-The currently committed demonstration video and screenshots show an earlier interface revision. They remain available for historical orientation, but do not yet demonstrate polygon deployment, custom-origin selection, or all simulator exports. A new video will replace them.
-
-- [Earlier-version demonstration video](https://github.com/cooja-positioner-project/cooja-positioner/blob/main/Cooja%20positioner_%20An%20Interactive%20Web-Based%20Tool%20for%20Node%20Positioning%20in%20the%20Cooja%20Simulator.mp4)
-- [Earlier main-interface screenshot](https://github.com/cooja-positioner-project/cooja-positioner/blob/main/preview.png)
-
-## Citation
-
-The final author list, article title, venue, DOI, and publication year will be added after peer review. For the anonymous software and reproducibility artifact, use the following interim citation:
-
-> Cooja-Positioner Project, “Cooja-Positioner: A universal web-based topology synthesizer for geo-grounded WSN simulations in Cooja, ns-2, ns-3, and OMNeT++,” software and reproducibility artifact, 2026. [Online]. Available: https://github.com/cooja-positioner-project/cooja-positioner. Live application: https://cooja-positioner-project.github.io/
-
-BibTeX:
-
-```bibtex
-@misc{cooja_positioner_2026,
-  author       = {{Cooja-Positioner Project}},
-  title        = {Cooja-Positioner: A Universal Web-Based Topology Synthesizer for Geo-Grounded WSN Simulations in Cooja, ns-2, ns-3, and OMNeT++},
-  year         = {2026},
-  howpublished = {\url{https://github.com/cooja-positioner-project/cooja-positioner}},
-  note         = {Software and reproducibility artifact. Live application: \url{https://cooja-positioner-project.github.io/}}
-}
-```
-
-## License
-
-See [`LICENSE`](https://github.com/cooja-positioner-project/cooja-positioner/blob/main/LICENSE).
+License and complete attribution information are provided in the [source repository](https://github.com/cooja-positioner-project/cooja-positioner).
