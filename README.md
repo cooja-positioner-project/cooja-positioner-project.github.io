@@ -1,9 +1,11 @@
-# Cooja Positioner — Live Application
+# Field2Sim — Live Application
 
-Cooja Positioner is a client-side, browser-based editor for authoring geographically grounded WSN and IoT scenarios and exporting simulator-specific artifacts.
+> From field context to reproducible network-simulation scenarios.
 
-- **Live application:** https://cooja-positioner-project.github.io/
-- **Source, tests, and reproducibility artifacts:** https://github.com/cooja-positioner-project/cooja-positioner
+Field2Sim is a client-side, browser-based editor that translates field context into simulator-ready WSN and IoT scenario artifacts. Here, *field context* means deployment-relevant geographic information and user-supplied or citation-backed propagation assumptions; it does not imply automated site surveying or channel-model inference.
+
+- **Live application:** https://field2sim.github.io/
+- **Source, tests, and reproducibility artifacts:** https://github.com/field2sim/field2sim
 
 No application server is required. Leaflet is bundled locally; OpenStreetMap tiles and Nominatim place search still require network access.
 
@@ -45,11 +47,11 @@ The source artifact records successful loading of 13 pinned propagation configur
 
 A deterministic Zolertia Z1 characterization executed 216 Cooja scenarios: 18 condition-level profiles × two RX anchors × six distances from 10 to 60 m. All cases completed. Of 108 paired RX-anchor comparisons, 107 produced identical PRR and conditional RSSI; the sole difference, Forest Guava at 20 m, resulted from the strict LogisticLoss candidate cutoff. The sweep uses one seed and includes source-domain extrapolations, so it is reported as simulator-model characterization rather than inferential or hardware-calibration evidence.
 
-Detailed equations, mappings, source citations, automated tests, pinned-toolchain reports, and evidence limitations are maintained in the [anonymous source repository](https://github.com/cooja-positioner-project/cooja-positioner).
+Detailed equations, mappings, source citations, automated tests, pinned-toolchain reports, and evidence limitations are maintained in the [anonymous source repository](https://github.com/field2sim/field2sim).
 
 ## Quick use
 
-1. Open the [live application](https://cooja-positioner-project.github.io/).
+1. Open the [live application](https://field2sim.github.io/).
 2. Choose a static or mobile scenario and a point or polygon workflow.
 3. Select the local-origin policy and author or paste the geographic positions.
 4. Select Cooja, ns-2, ns-3, or INET/OMNeT++ and generate the mobility/position artifact.
@@ -59,6 +61,6 @@ Keep the visible OpenStreetMap attribution when capturing or redistributing map-
 
 ## Anonymous citation
 
-> Cooja-Positioner Project, “Cooja-Positioner: A provenance-aware web-based scenario synthesizer for geo-grounded WSN simulations in Cooja, ns-2, ns-3, and OMNeT++,” software and reproducibility artifact, 2026. Source: https://github.com/cooja-positioner-project/cooja-positioner. Live application: https://cooja-positioner-project.github.io/
+> Field2Sim Project, “Field2Sim: A provenance-aware web-based scenario synthesizer for geo-grounded WSN simulations,” software and reproducibility artifact, 2026. Source: https://github.com/field2sim/field2sim. Live application: https://field2sim.github.io/
 
-License and complete attribution information are provided in the [source repository](https://github.com/cooja-positioner-project/cooja-positioner).
+License and complete attribution information are provided in the [source repository](https://github.com/field2sim/field2sim).
